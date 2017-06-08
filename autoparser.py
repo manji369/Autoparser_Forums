@@ -37,11 +37,13 @@ def check_group_of_widths(same_width_elements):
     return False, False
 
 def check_separated_group_of_widths(same_width_elements, parent):
+    if parent[4] == 0:
+        return False
     height = 0
     parent_height = parent[1]
     for elem in same_width_elements:
         height += elem[1]
-    if height > 0.9*parent_height and height < parent_height:
+    if height > 0.9*parent_height and height < 1.1*parent_height:
         return parent
     return False
 
@@ -87,6 +89,13 @@ def get_common_parent_size(same_width_elements, most_common_parent):
         if elem[0] == most_common_parent:
             return elem
 
+def filter_by_parent(same_width_elements, parent):
+    same_width_elements_new = []
+    for elem in same_width_elements:
+        if parent in elem[0]:
+            same_width_elements_new.append(elem)
+    return same_width_elements_new
+
 def level_with_max_count_and_same_parent(same_width_elements):
     level_required = level_with_max_count(same_width_elements)
     same_width_elements_new = []
@@ -96,10 +105,23 @@ def level_with_max_count_and_same_parent(same_width_elements):
             same_width_elements_new.append(elem)
     same_width_elements_new = find_elems_with_most_common_tag_name(same_width_elements_new)
     most_common_parent = find_most_common_parent(same_width_elements_new)
+    same_width_elements_new = filter_by_parent(same_width_elements_new, most_common_parent)
     most_common_parent_size = get_common_parent_size(same_width_elements, most_common_parent)
     same_width_elements_new.sort(key = lambda x: x[4])
     return most_common_parent_size, same_width_elements_new
 
+level_required = level_with_max_count(same_width_elements)
+same_width_elements_new = []
+for elem in same_width_elements:
+    level = find_level(elem[0])
+    if level == level_required:
+        same_width_elements_new.append(elem)
+same_width_elements_new = find_elems_with_most_common_tag_name(same_width_elements_new)
+most_common_parent = find_most_common_parent(same_width_elements_new)
+same_width_elements_new = filter_by_parent(same_width_elements_new, most_common_parent)
+most_common_parent_size = get_common_parent_size(same_width_elements, most_common_parent)
+same_width_elements_new.sort(key = lambda x: x[4])
+return most_common_parent_size, same_width_elements_new
 
 def create_level_map(same_width_elements):
     level_map = {}
@@ -164,9 +186,11 @@ driver = webdriver.Firefox()
 # driver = webdriver.PhantomJS()
 print "done"
 
-driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
+# driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
 # driver.get("https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable")
 # driver.get("https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera")
+driver.get("https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424")
+
 page_content = driver.page_source
 soup = bs(page_content, "html.parser")
 
