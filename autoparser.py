@@ -110,19 +110,6 @@ def level_with_max_count_and_same_parent(same_width_elements):
     same_width_elements_new.sort(key = lambda x: x[4])
     return most_common_parent_size, same_width_elements_new
 
-level_required = level_with_max_count(same_width_elements)
-same_width_elements_new = []
-for elem in same_width_elements:
-    level = find_level(elem[0])
-    if level == level_required:
-        same_width_elements_new.append(elem)
-same_width_elements_new = find_elems_with_most_common_tag_name(same_width_elements_new)
-most_common_parent = find_most_common_parent(same_width_elements_new)
-same_width_elements_new = filter_by_parent(same_width_elements_new, most_common_parent)
-most_common_parent_size = get_common_parent_size(same_width_elements, most_common_parent)
-same_width_elements_new.sort(key = lambda x: x[4])
-return most_common_parent_size, same_width_elements_new
-
 def create_level_map(same_width_elements):
     level_map = {}
     for elem in same_width_elements:
