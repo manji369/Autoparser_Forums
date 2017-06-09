@@ -168,6 +168,19 @@ def xpath_soup(element):
     components.reverse()
     return '/%s' % '/'.join(components)
 
+def are_neighbors(width, size):
+    diff = abs(width - size)
+    return diff < 5 and diff != 0
+
+def quantize_widths(sizes, top_5_widths):
+    for width in top_5_widths:
+        for i in range(len(sizes)):
+            size = sizes[i]
+            if are_neighbors(width, size[2]):
+                sizes[i] = size[0:2] + (width,) + size[3:]
+    return sizes
+
+
 print "Initiating Firefox"
 driver = webdriver.Firefox()
 # driver = webdriver.PhantomJS()
@@ -176,7 +189,8 @@ print "done"
 # driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
 # driver.get("https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable")
 # driver.get("https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera")
-driver.get("https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424")
+# driver.get("https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424")
+driver.get("file:///./Autoparser_pages/1401.htm")
 
 page_content = driver.page_source
 soup = bs(page_content, "html.parser")
@@ -215,7 +229,7 @@ for child in children:
 
 sizes = []
 couldnot_find = 0
-f = open('/home/manji369/xpaths.txt', 'w')
+f = open('/home/revanth/xpaths.txt', 'w')
 for i in range(len(xpaths)):
     xpath = xpaths[i]
     p = i*100/len(xpaths)
@@ -241,6 +255,7 @@ for size in sizes:
         width_map[size[2]] += 1;
 
 top_5_widths = top_5(width_map)
+sizes = quantize_widths(sizes, top_5_widths)
 top_5_widths.sort(reverse=True)
 for max_width_key in top_5_widths:
     same_width_elements = get_same_width_elements(sizes, max_width_key)
