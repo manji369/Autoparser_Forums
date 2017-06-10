@@ -4,9 +4,51 @@ from bs4 import BeautifulSoup as bs
 
 import itertools
 import time
+import re
 
 home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
 min_posts = 5
+
+def remove_nulls(arr):
+    ret_arr = []
+    for a in arr:
+        if a:
+            ret_arr.append(a)
+    return ret_arr
+
+def find_most_common_regex(ids):
+    reg_map = {}
+    for i in ids:
+        id_reg_filtered = re.sub("[0-9]", "", i)
+        if id_reg_filtered not in reg_map:
+            reg_map[id_reg_filtered] = 1
+        else:
+            reg_map[id_reg_filtered] += 1
+    return sorted(reg_map, key=reg_map.get, reverse=True)[0]
+
+def find_most_common_class(classes):
+    cls_map = {}
+    for cls in classes:
+        if cls not in cls_map:
+            cls_map[cls] = 1
+        else:
+            cls_map[cls] += 1
+    cls_name = sorted(cls_map, key=cls_map.get, reverse=True)[0]
+    if cls_name:
+        return cls_name
+    return False
+
+def find_row_selector(ids, classes):
+    ids = remove_nulls(ids)
+    classes = remove_nulls(classes)
+    id_regex = find_most_common_regex(ids)
+    if classes:
+        cls_name = find_most_common_class(classes)
+    if id_regex:
+        return str(id_regex) + '[0-9]+'
+    elif cls_name:
+        return str(cls_name)
+    return False
 
 def check_group_of_widths(same_width_elements):
     level_required = level_with_max_count(same_width_elements)
@@ -235,10 +277,10 @@ driver = webdriver.Firefox()
 # driver = webdriver.PhantomJS()
 print "done"
 
-driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
+# driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
 # driver.get("https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable")
 # driver.get("https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera")
-# driver.get("https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424")
+driver.get("https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424")
 # driver.get("file:///" + home_path + "1401.htm")
 
 page_content = driver.page_source
@@ -339,12 +381,40 @@ for max_width_key in top_5_widths:
 # print new_max_width_key
 
 same_width_elements.sort(key = lambda x: x[4])
+print "Total " + str(len(same_width_elements)) + " posts found"
 for elem in same_width_elements:
     print elem
 
-elem = big_element
-print elem[0]
-highlight(driver.find_element_by_xpath(elem[0]))
+big_element = big_element[0]
+print "Main enclosing element xpath:" + big_element
+e = driver.find_element_by_xpath(big_element)
+highlight(e)
+id_big = e.get_attribute('id')
+print id_big
+cls_big = e.get_attribute('class')
+print cls_big
+tag_big = get_tag(big_element)
+print tag_big
 for elem in same_width_elements:
     e = driver.find_element_by_xpath(elem[0])
     highlight(e)
+
+ids = []
+classes = []
+for elem in same_width_elements:
+    e = driver.find_element_by_xpath(elem[0])
+    ids.append(e.get_attribute('id'))
+    classes.append(e.get_attribute('class'))
+
+if id_big:
+    print "Main css selector: " + str(tag_big) + "." + str(id_big)
+elif cls_big:
+    print "Main css selector: " + str(tag_big) + "." + str(cls_big)
+else:
+    print "Main xpath: " + str(big_element)
+
+row_selector = find_row_selector(ids, classes)
+if row_selector:
+    print "Row css selector regex: " + str(get_tag(elem[0])) + '.' +str(row_selector)
+else:
+    print "Row tag:" + str(get_tag(elem[0]))
