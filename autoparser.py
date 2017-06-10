@@ -308,7 +308,10 @@ replacements = [
                 '/input',
                 '/svg',
                 '/path',
-                '/noscript'
+                '/noscript',
+                '/fieldset',
+                '/select',
+                '/option'
                 ]
 
 xpaths = []
