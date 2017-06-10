@@ -5,6 +5,9 @@ from bs4 import BeautifulSoup as bs
 import itertools
 import time
 
+home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
+min_posts = 5
+
 def check_group_of_widths(same_width_elements):
     level_required = level_with_max_count(same_width_elements)
     same_width_elements_new = []
@@ -65,13 +68,20 @@ def find_most_common_parent(same_width_elements):
             return elem
     return parent_xpath
 
-def get_tag(elem):
-    return elem.split('/')[-1].split('[')[0]
+def get_tag_with_number(elem):
+    return elem.split('/')[-1]
 
-def find_elems_with_most_common_tag_name(same_width_elements):
+def get_tag(elem):
+    return get_tag_with_number(elem).split('[')[0]
+
+def find_elems_with_most_common_tag_name_or_parent(same_width_elements, name_or_parent=True):
     tag_map = {}
     for elem in same_width_elements:
-        tag = get_tag(elem[0])
+        if name_or_parent:
+            tag = get_tag(elem[0])
+        else:
+            xpath_parent = '/'.join(elem[0].split('/')[:-1])
+            tag = get_tag_with_number(xpath_parent)
         if tag not in tag_map:
             tag_map[tag] = 1
         else:
@@ -79,7 +89,11 @@ def find_elems_with_most_common_tag_name(same_width_elements):
     common_tag = sorted(tag_map, key=tag_map.get, reverse=True)[0]
     same_width_elements_new = []
     for elem in same_width_elements:
-        tag = get_tag(elem[0])
+        if name_or_parent:
+            tag = get_tag(elem[0])
+        else:
+            xpath_parent = '/'.join(elem[0].split('/')[:-1])
+            tag = get_tag_with_number(xpath_parent)
         if tag == common_tag:
             same_width_elements_new.append(elem)
     return same_width_elements_new
@@ -96,6 +110,41 @@ def filter_by_parent(same_width_elements, parent):
             same_width_elements_new.append(elem)
     return same_width_elements_new
 
+def find_elems_with_most_common_immediate_parent(same_width_elements):
+    same_width_elements = find_elems_with_most_common_tag_name_or_parent(same_width_elements, False)
+    if len(same_width_elements) < min_posts:
+        return same_width_elements, False
+    return same_width_elements, True
+
+
+def level_with_max_number_of_elems_with_same_parent(same_width_elements, sizes):
+    level_map = create_level_map(same_width_elements)
+    levels = sorted([key for key in level_map])
+    for level in levels:
+        if level_map[level] < min_posts:
+            continue
+        else:
+            same_width_elements_new = []
+            for elem in same_width_elements:
+                if find_level(elem[0]) == level:
+                    same_width_elements_new.append(elem)
+            same_width_elements_new = list(set(same_width_elements_new))
+            same_width_elements_new.sort(key=lambda x: x[4])
+            same_width_elements_new = find_elems_with_most_common_tag_name_or_parent(same_width_elements_new)
+            if len(same_width_elements_new) < min_posts:
+                continue
+            same_width_elements_new, success = find_elems_with_most_common_immediate_parent(same_width_elements_new)
+            if success:
+                most_common_parent = find_most_common_parent(same_width_elements_new)
+                same_width_elements_new = filter_by_parent(same_width_elements_new, most_common_parent)
+                most_common_parent_size = get_common_parent_size(sizes, most_common_parent)
+                same_width_elements_new.sort(key = lambda x: x[4])
+                return most_common_parent_size, same_width_elements_new
+            else:
+                continue
+    return False, same_width_elements
+
+
 def level_with_max_count_and_same_parent(same_width_elements):
     level_required = level_with_max_count(same_width_elements)
     same_width_elements_new = []
@@ -103,7 +152,7 @@ def level_with_max_count_and_same_parent(same_width_elements):
         level = find_level(elem[0])
         if level == level_required:
             same_width_elements_new.append(elem)
-    same_width_elements_new = find_elems_with_most_common_tag_name(same_width_elements_new)
+    same_width_elements_new = find_elems_with_most_common_tag_name_or_parent(same_width_elements_new)
     most_common_parent = find_most_common_parent(same_width_elements_new)
     same_width_elements_new = filter_by_parent(same_width_elements_new, most_common_parent)
     most_common_parent_size = get_common_parent_size(same_width_elements, most_common_parent)
@@ -186,11 +235,11 @@ driver = webdriver.Firefox()
 # driver = webdriver.PhantomJS()
 print "done"
 
-# driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
+driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
 # driver.get("https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable")
 # driver.get("https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera")
 # driver.get("https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424")
-driver.get("file:///./Autoparser_pages/1401.htm")
+# driver.get("file:///" + home_path + "1401.htm")
 
 page_content = driver.page_source
 soup = bs(page_content, "html.parser")
@@ -229,7 +278,7 @@ for child in children:
 
 sizes = []
 couldnot_find = 0
-f = open('/home/revanth/xpaths.txt', 'w')
+f = open(home_path + 'xpaths.txt', 'w')
 for i in range(len(xpaths)):
     xpath = xpaths[i]
     p = i*100/len(xpaths)
@@ -259,7 +308,12 @@ sizes = quantize_widths(sizes, top_5_widths)
 top_5_widths.sort(reverse=True)
 for max_width_key in top_5_widths:
     same_width_elements = get_same_width_elements(sizes, max_width_key)
-    big_element, same_width_elements = level_with_max_count_and_same_parent(same_width_elements)
+    if len(same_width_elements) < min_posts:
+        continue
+    # big_element, same_width_elements = level_with_max_count_and_same_parent(same_width_elements)
+    big_element, same_width_elements = level_with_max_number_of_elems_with_same_parent(same_width_elements, sizes)
+    if len(same_width_elements) < min_posts:
+        continue
     # big_element, same_width_elements = check_group_of_widths(same_width_elements)
     if big_element:
         big_element = check_separated_group_of_widths(same_width_elements, big_element)
