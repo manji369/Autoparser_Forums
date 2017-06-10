@@ -5,9 +5,69 @@ from bs4 import BeautifulSoup as bs
 import itertools
 import time
 import re
+import sys
 
-home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
+# home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
+home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
+# url = "https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424"
+# url = "file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html"
+# url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
+# url = "https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera"
+# url = "file:///" + home_path + "1401.htm"
+# url = "file:///" + home_path + "alfursan.htm"
+# url = "file:///" + home_path + "aoreteam.htm"
+url = "file:///" + home_path + "audonjon.htm"
+""" url = "file:///" + home_path + "abtalealdjazaire.htm" """
 min_posts = 5
+
+def is_not_first_tag(xpath):
+    return get_tag_with_number(xpath).replace(get_tag(xpath), '')
+
+def xpath_sibling(xpath, num):
+    tag_name = str(get_tag(xpath))
+    xpath = str(xpath)
+    xpath = '/'.join(xpath.split('/')[:-1]) + '/' + tag_name
+    if num != 1:
+         xpath += '[' + str(num) + ']'
+    return xpath
+
+def remove_nulls_map(attrs):
+    attrs_new = {}
+    for attr in attrs:
+        if attrs[attr]:
+            attrs_new[attr] = attrs[attr]
+    return attrs_new
+
+def all_attrs(xpath, attrs, driver):
+    tag_number = int(re.sub('[^0-9]+', '', is_not_first_tag(xpath)))
+    attrs = remove_nulls_map(attrs)
+    len_attrs = len(attrs)
+    for i in range(1, tag_number):
+        xpath_cur = xpath_sibling(xpath, i)
+        e = driver.find_element_by_xpath(xpath_cur)
+        cnt = 0
+        for attr in attrs:
+            attr_val = attrs[attr]
+            if attr_val != e.get_attribute(attr):
+                continue
+            cnt += 1
+        if cnt == len_attrs:
+            return xpath
+    return attrs
+
+
+def find_unique_selector(xpath, e, cls_big, driver):
+    tag_number = int(re.sub('[^0-9]+', '', is_not_first_tag(xpath)))
+    attrs = driver.execute_script(
+        'var items = {}; for (index = 0; index < arguments[0].attributes.length; ++index) '
+        '{ items[arguments[0].attributes[index].name] = arguments[0].attributes[index].value }; return items;',
+        e)
+    for i in range(1, tag_number):
+        xpath_cur = xpath_sibling(xpath, i)
+        e = driver.find_element_by_xpath(xpath_cur)
+        if e.get_attribute('class') == cls_big:
+            return all_attrs(xpath, attrs, driver)
+
 
 def remove_nulls(arr):
     ret_arr = []
@@ -41,7 +101,10 @@ def find_most_common_class(classes):
 def find_row_selector(ids, classes):
     ids = remove_nulls(ids)
     classes = remove_nulls(classes)
-    id_regex = find_most_common_regex(ids)
+    id_regex = None
+    cls_name = None
+    if ids:
+        id_regex = find_most_common_regex(ids)
     if classes:
         cls_name = find_most_common_class(classes)
     if id_regex:
@@ -280,7 +343,7 @@ print "done"
 # driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
 # driver.get("https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable")
 # driver.get("https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera")
-driver.get("https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424")
+driver.get(url)
 # driver.get("file:///" + home_path + "1401.htm")
 
 page_content = driver.page_source
@@ -324,6 +387,7 @@ for child in children:
 sizes = []
 couldnot_find = 0
 f = open(home_path + 'xpaths.txt', 'w')
+print 'Getting sizes of all elements....'
 for i in range(len(xpaths)):
     xpath = xpaths[i]
     p = i*100/len(xpaths)
@@ -393,11 +457,12 @@ print "Main enclosing element xpath:" + big_element
 e = driver.find_element_by_xpath(big_element)
 highlight(e)
 id_big = e.get_attribute('id')
-print id_big
 cls_big = e.get_attribute('class')
-print cls_big
 tag_big = get_tag(big_element)
-print tag_big
+if not id_big:
+    if is_not_first_tag(big_element):
+        cls_big = find_unique_selector(big_element, e, cls_big, driver)
+
 for elem in same_width_elements:
     e = driver.find_element_by_xpath(elem[0])
     highlight(e)
