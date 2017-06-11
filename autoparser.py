@@ -7,8 +7,9 @@ import time
 import re
 import sys
 
-# home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
-home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
+
+home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
+# home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
 # url = "https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424"
 # url = "file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html"
 # url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
@@ -21,9 +22,18 @@ url = "file:///" + home_path + "audonjon.htm"
 min_posts = 5
 
 def is_not_first_tag(xpath):
+    """
+    Returns an empty string if the tag is the first tag with that tag name of a
+    given parent. If it is not the first tag returns [tag_number] where tag_number
+    is the occurence number of that tag
+    """
     return get_tag_with_number(xpath).replace(get_tag(xpath), '')
 
 def xpath_sibling(xpath, num):
+    """
+    Returns the xpath of a sibling element with same tag name as the given element
+    and the occrence number being num.
+    """
     tag_name = str(get_tag(xpath))
     xpath = str(xpath)
     xpath = '/'.join(xpath.split('/')[:-1]) + '/' + tag_name
@@ -32,6 +42,9 @@ def xpath_sibling(xpath, num):
     return xpath
 
 def remove_nulls_map(attrs):
+    """
+    Removes nulls from a dictionary and returns everthing else
+    """
     attrs_new = {}
     for attr in attrs:
         if attrs[attr]:
@@ -39,6 +52,13 @@ def remove_nulls_map(attrs):
     return attrs_new
 
 def all_attrs(xpath, attrs, driver):
+    """
+    Helper function that returns all the attributes (dictionary of attributes
+    and values) of a given element, if another other sibling element doesnot
+    have exactly all the same values for attributes. If there is any sibling that
+    has all the same attributes as given element it returns the xpath that is input
+    to it.
+    """
     tag_number = int(re.sub('[^0-9]+', '', is_not_first_tag(xpath)))
     attrs = remove_nulls_map(attrs)
     len_attrs = len(attrs)
@@ -57,6 +77,10 @@ def all_attrs(xpath, attrs, driver):
 
 
 def find_unique_selector(xpath, e, cls_big, driver):
+    """
+    Checks if any of the sibling elements have same class as current element. If
+    not returns the input class name
+    """
     tag_number = int(re.sub('[^0-9]+', '', is_not_first_tag(xpath)))
     attrs = driver.execute_script(
         'var items = {}; for (index = 0; index < arguments[0].attributes.length; ++index) '
@@ -67,9 +91,13 @@ def find_unique_selector(xpath, e, cls_big, driver):
         e = driver.find_element_by_xpath(xpath_cur)
         if e.get_attribute('class') == cls_big:
             return all_attrs(xpath, attrs, driver)
+    return cls_big
 
 
 def remove_nulls(arr):
+    """
+    Removes all null elements from an array and returns it
+    """
     ret_arr = []
     for a in arr:
         if a:
@@ -77,6 +105,10 @@ def remove_nulls(arr):
     return ret_arr
 
 def find_most_common_regex(ids):
+    """
+    Finds the most common regex of all the ids of posts detected. This is to filter
+    out small abberations which might be detected along with actual posts
+    """
     reg_map = {}
     for i in ids:
         id_reg_filtered = re.sub("[0-9]", "", i)
@@ -87,6 +119,11 @@ def find_most_common_regex(ids):
     return sorted(reg_map, key=reg_map.get, reverse=True)[0]
 
 def find_most_common_class(classes):
+    """
+    Returns the value of attribute class that is most common among the posts detected.
+    Again this is to filter out small abberations which might be detected along
+    with actual posts
+    """
     cls_map = {}
     for cls in classes:
         if cls not in cls_map:
@@ -99,6 +136,11 @@ def find_most_common_class(classes):
     return False
 
 def find_row_selector(ids, classes):
+    """
+    Master function for the two functions find_most_common_regex and
+    find_most_common_class. Returns id_regex if it is present. If not looks for
+    class name. If not returns false
+    """
     ids = remove_nulls(ids)
     classes = remove_nulls(classes)
     id_regex = None
@@ -114,6 +156,9 @@ def find_row_selector(ids, classes):
     return False
 
 def check_group_of_widths(same_width_elements):
+    """
+    Old method. Not currently in use.
+    """
     level_required = level_with_max_count(same_width_elements)
     same_width_elements_new = []
     total_height = 0
@@ -145,6 +190,10 @@ def check_group_of_widths(same_width_elements):
     return False, False
 
 def check_separated_group_of_widths(same_width_elements, parent):
+    """
+    Calculates the sum of heights of all the posts detected and checks if the
+    height of main enclosing element is aprroximately same as the calculated one.
+    """
     if parent[4] == 0:
         return False
     height = 0
@@ -156,10 +205,17 @@ def check_separated_group_of_widths(same_width_elements, parent):
     return False
 
 def level_with_max_count(same_width_elements):
+    """
+    Returns the level which has maximum number of elements from a group of same
+    width elements
+    """
     level_map = create_level_map(same_width_elements)
     return sorted(level_map, key=level_map.get, reverse=True)[0]
 
 def find_most_common_parent(same_width_elements):
+    """
+    Given a group of same width elements, returns the parent that is most common.
+    """
     parents = ['/'.join(x[0].split('/')[:-1]) for x in same_width_elements]
     parent_map = {}
     for parent in parents:
@@ -174,12 +230,29 @@ def find_most_common_parent(same_width_elements):
     return parent_xpath
 
 def get_tag_with_number(elem):
+    """
+    Given an xpath, returns the tag along with the occurence number of tag.
+    eg. div[5]
+    """
     return elem.split('/')[-1]
 
 def get_tag(elem):
+    """
+    Given an xpath, returns the tag name of the element
+    eg. div
+    """
     return get_tag_with_number(elem).split('[')[0]
 
 def find_elems_with_most_common_tag_name_or_parent(same_width_elements, name_or_parent=True):
+    """
+    Two modes:
+    if name_or_parent is True:
+        Given a list of same width elements, returns the elements with most common
+        tag name
+    else:
+        Given a list of same width elements, returns the elements with most common
+        parent
+    """
     tag_map = {}
     for elem in same_width_elements:
         if name_or_parent:
@@ -204,11 +277,18 @@ def find_elems_with_most_common_tag_name_or_parent(same_width_elements, name_or_
     return same_width_elements_new
 
 def get_common_parent_size(same_width_elements, most_common_parent):
+    """
+    Returns the size (length and width) of the required parent from the sizes
+    grabbed earlier and grouped as same width elements
+    """
     for elem in same_width_elements:
         if elem[0] == most_common_parent:
             return elem
 
 def filter_by_parent(same_width_elements, parent):
+    """
+    Removes all elements that don't have the given tag name as parent
+    """
     same_width_elements_new = []
     for elem in same_width_elements:
         if parent in elem[0]:
@@ -216,6 +296,10 @@ def filter_by_parent(same_width_elements, parent):
     return same_width_elements_new
 
 def find_elems_with_most_common_immediate_parent(same_width_elements):
+    """
+    Master function for find_elems_with_most_common_tag_name_or_parent. Also Checks
+    if number of posts detected are less than minimum number of posts.
+    """
     same_width_elements = find_elems_with_most_common_tag_name_or_parent(same_width_elements, False)
     if len(same_width_elements) < min_posts:
         return same_width_elements, False
@@ -223,6 +307,11 @@ def find_elems_with_most_common_immediate_parent(same_width_elements):
 
 
 def level_with_max_number_of_elems_with_same_parent(same_width_elements, sizes):
+    """
+    Master function for find_elems_with_most_common_immediate_parent and uses the
+    returned elements from that function to find most common parent by calling
+    find_most_common_parent and then filters the elements by that parent.
+    """
     level_map = create_level_map(same_width_elements)
     levels = sorted([key for key in level_map])
     for level in levels:
@@ -251,6 +340,11 @@ def level_with_max_number_of_elems_with_same_parent(same_width_elements, sizes):
 
 
 def level_with_max_count_and_same_parent(same_width_elements):
+    """
+    Master function for find_elems_with_most_common_tag_name_or_parent,
+    find_most_common_parent and returns a tuple containing parents xpath, size and
+    location
+    """
     level_required = level_with_max_count(same_width_elements)
     same_width_elements_new = []
     for elem in same_width_elements:
@@ -265,6 +359,9 @@ def level_with_max_count_and_same_parent(same_width_elements):
     return most_common_parent_size, same_width_elements_new
 
 def create_level_map(same_width_elements):
+    """
+    Returns a counter of the levels
+    """
     level_map = {}
     for elem in same_width_elements:
         level = find_level(elem[0])
@@ -275,6 +372,9 @@ def create_level_map(same_width_elements):
     return level_map
 
 def get_same_width_elements(sizes, max_width_key):
+    """
+    Returns the elements with a given width (max_width_key)
+    """
     same_width_elements = []
     for size in sizes:
         if size[2] == max_width_key:
@@ -285,9 +385,15 @@ def get_same_width_elements(sizes, max_width_key):
     return same_width_elements
 
 def top_5(width_map):
+    """
+    Finds 5 widths that have the most number of elements and sorts them by the width
+    """
     return sorted(width_map, key=width_map.get, reverse=True)[:5]
 
 def find_level(xpath):
+    """
+    Returns level of an element from xpath
+    """
     return xpath.count('/')
 
 def highlight(element):
@@ -323,10 +429,18 @@ def xpath_soup(element):
     return '/%s' % '/'.join(components)
 
 def are_neighbors(width, size):
+    """
+    Checks if two widths are less than 5 units apart.
+    """
     diff = abs(width - size)
     return diff < 5 and diff != 0
 
 def quantize_widths(sizes, top_5_widths):
+    """
+    Uses are_neighbors to quantize widths to top_5_widths.
+    This is to filter out abberations where parent tag doesnot have the exact same
+    width as posts
+    """
     for width in top_5_widths:
         for i in range(len(sizes)):
             size = sizes[i]
@@ -334,24 +448,11 @@ def quantize_widths(sizes, top_5_widths):
                 sizes[i] = size[0:2] + (width,) + size[3:]
     return sizes
 
-
-print "Initiating Firefox"
-driver = webdriver.Firefox()
-# driver = webdriver.PhantomJS()
-print "done"
-
-# driver.get("file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html")
-# driver.get("https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable")
-# driver.get("https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera")
-driver.get(url)
-# driver.get("file:///" + home_path + "1401.htm")
-
-page_content = driver.page_source
-soup = bs(page_content, "html.parser")
-
-html = soup.find('html')
-children = html.findChildren()
 def find_element(xpath, driver):
+    """
+    Finds a given element in webpage opened using selenium via firefox from xpath
+    and returns its location and size if its found. Else returns -1, -1
+    """
     # xpath = xpath_soup(html)
     # print "xpath:", xpath
     try:
@@ -362,6 +463,22 @@ def find_element(xpath, driver):
     size = e.size
     return location, size
 
+print "Initiating Firefox"
+driver = webdriver.Firefox()
+# driver = webdriver.PhantomJS()
+print "done"
+
+driver.get(url)
+
+""" Read the page with BeautifulSoup """
+page_content = driver.page_source
+soup = bs(page_content, "html.parser")
+
+""" Find all the children tags """
+html = soup.find('html')
+children = html.findChildren()
+
+""" Replacement tag names to be replaced """
 replacements = [
                 '/img',
                 '/br',
@@ -377,6 +494,10 @@ replacements = [
                 '/option'
                 ]
 
+"""
+Convert each child soup object to xpath and replace all the replacements in all
+the xpaths because selenium does not find these elements.
+"""
 xpaths = []
 for child in children:
     xpath = xpath_soup(child)
@@ -384,6 +505,12 @@ for child in children:
         xpath = xpath.replace(replacement, '')
     xpaths.append(xpath)
 
+
+"""
+Grab size (height, width) and location (x, y) of each element and store them in
+a list sizes if the width > 200 and height > 100. Also write the xpaths that were
+ not found by selenium to a file so that the replacements can be updated
+"""
 sizes = []
 couldnot_find = 0
 f = open(home_path + 'xpaths.txt', 'w')
@@ -401,10 +528,13 @@ for i in range(len(xpaths)):
         sizes.append((xpath, size['height'], size['width'], location['x'], location['y']))
         # print xpath
 
+""" Close the file and print the number of elements that were not found """
 f.close()
 print "Could not find:", couldnot_find
+""" Sort the sizes by height """
 sizes.sort(key = lambda x: x[1])
 
+""" Create a counter for widths """
 width_map = {}
 for size in sizes:
     if size[2] not in width_map:
@@ -412,9 +542,14 @@ for size in sizes:
     else:
         width_map[size[2]] += 1;
 
+""" Find the top 5 widths (by occurence) """
 top_5_widths = top_5(width_map)
+""" Quantize the widths and sort them by width """
 sizes = quantize_widths(sizes, top_5_widths)
 top_5_widths.sort(reverse=True)
+"""
+For each width check if the width is the required width.
+"""
 for max_width_key in top_5_widths:
     same_width_elements = get_same_width_elements(sizes, max_width_key)
     if len(same_width_elements) < min_posts:
@@ -429,29 +564,18 @@ for max_width_key in top_5_widths:
     if big_element:
         break
 
-# max_width = 0; max_width_key
-# for key in width_map:
-#     if width_map[key] > max_width:
-#         max_width = width_map[key]
-#         max_width_key = key
-#
-# print max_width_key
-
-# print index_big_element
-# if index_big_element == len(same_width_elements)-1:
-#     new_max_width_key = -1; max_width = 0
-#     for key in width_map:
-#         if width_map[key] > max_width and key > max_width_key:
-#             max_width = width_map[key]
-#             new_max_width_key = key
-#
-# print new_max_width_key
-
+"""
+Sort same width elements that were detected to be posts by y coordinate (order in
+which they appear) and print them.
+"""
 same_width_elements.sort(key = lambda x: x[4])
 print "Total " + str(len(same_width_elements)) + " posts found"
 for elem in same_width_elements:
     print elem
 
+""" Find the id and class name of parent and highlight the parent and posts detected
+in browser.
+"""
 big_element = big_element[0]
 print "Main enclosing element xpath:" + big_element
 e = driver.find_element_by_xpath(big_element)
@@ -467,6 +591,9 @@ for elem in same_width_elements:
     e = driver.find_element_by_xpath(elem[0])
     highlight(e)
 
+"""
+Find the ids and class names of all the detected posts
+"""
 ids = []
 classes = []
 for elem in same_width_elements:
