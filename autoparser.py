@@ -9,8 +9,8 @@ import re
 import sys
 
 
-home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
-# home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
+# home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
+home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
 # url = "https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424"
 # url = "file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html"
 # url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
@@ -406,7 +406,7 @@ def highlight(element):
                               element, s)
     original_style = element.get_attribute('style')
     apply_style("background: yellow; border: 2px solid red;")
-    time.sleep(.3)
+    time.sleep(.1)
     apply_style(original_style)
 
 def xpath_soup(element):
@@ -729,17 +729,43 @@ def verify_parents_and_attrs_for_all_posts(parents_and_attrs, rows, text_filtere
             return False, i
     return True, -1
 
-text_parent_ignore_list = ['p', 'li']
+def find_post(text_row):
+    initial_parent = False
+    text_row.sort(key=lambda x: len(x), reverse=True)
+    initial_parent = text_row[0].parent
+    if initial_parent.name in text_parent_ignore_list:
+        initial_parent = initial_parent.parent
+    for text in text_row:
+        text_parent = text.parent
+        if text_parent.name in text_parent_ignore_list:
+            text_parent = text_parent.parent
+        if text_parent != initial_parent:
+            break
+    return initial_parent
+
+def find_regex_attrs(parent):
+    tag_name = parent.name
+    attrs = parent.attrs
+    for key in attrs:
+        val = attrs[key][0]
+        val = re.sub('[0-9]+', '[0-9]+', val)
+        attrs[key] = val
+    return  tag_name, attrs
+
+
+text_parent_ignore_list = ['p', 'li', 'strong']
 
 posts = soup.find('div', {'id': 'brdmain'})
 rows = posts.find_all('div', {'id': re.compile('p[0-9]+')})
 text_to_be_filtered = []
+all_texts = []
 for i in range(len(rows)):
     row = rows[i]
-    texts = remove_nulls_strings(row.find_all(text=re.compile('')))
+    text_row = remove_nulls_strings(row.find_all(text=re.compile('')))
+    all_texts.append(text_row)
     # print "Post number ", i+1, ":"
     text_to_be_filtered_row = []
-    for text in texts:
+    for text in text_row:
         if len(text) <= 20 and text.parent.name not in text_parent_ignore_list:
             text_to_be_filtered_row.append(text)
     text_to_be_filtered.append(text_to_be_filtered_row)
@@ -766,3 +792,18 @@ if verify_parents_and_attrs_for_all_posts(parents_and_common_attrs, rows, text_f
         print verify_parents_and_attrs(parents_and_common_attrs, row)
 else:
     print "Failed to fetch soup for user"
+
+print "\nInsert the index of post which has more text"
+index = int(raw_input())
+parent = find_post(all_texts[index])
+if parent:
+    parent = find_regex_attrs(parent)
+    print "Soup for posts is:", parent
+    print '\n Posts found in this page are:'
+    parent_name = parent[0]
+    parent_attrs = parent[1]
+    for i, row in enumerate(rows):
+        print "Post Number:", i+1
+        print row.find(parent_name, parent_attrs).text
+else:
+    print "Failed to fetch soup for post"
