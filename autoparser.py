@@ -17,8 +17,8 @@ home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
 # url = "https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera"
 # url = "file:///" + home_path + "1401.htm"
 # url = "file:///" + home_path + "alfursan.htm"
-# url = "file:///" + home_path + "aoreteam.htm"
-url = "file:///" + home_path + "audonjon.htm"
+url = "file:///" + home_path + "aoreteam.htm"
+# url = "file:///" + home_path + "audonjon.htm"
 """ url = "file:///" + home_path + "abtalealdjazaire.htm" """
 min_posts = 5
 
@@ -723,7 +723,7 @@ def verify_parents_and_attrs_for_all_posts(parents_and_attrs, rows, text_filtere
     for i, row in enumerate(rows):
         try:
             text_of_elem = verify_parents_and_attrs(parents_and_attrs, row)
-            if text_of_elem not in text_filtered[i]:
+            if text_of_elem not in text_filtered[i] or not text_to_be_filtered[i]:
                 return False, i
         except:
             return False, i
@@ -755,8 +755,10 @@ def find_regex_attrs(parent):
 
 text_parent_ignore_list = ['p', 'li', 'strong']
 
-posts = soup.find('div', {'id': 'brdmain'})
-rows = posts.find_all('div', {'id': re.compile('p[0-9]+')})
+# posts = soup.find('div', {'id': 'brdmain'})
+# rows = posts.find_all('div', {'id': re.compile('p[0-9]+')})
+posts = soup.find('div', {'id': 'posts'})
+rows = posts.find_all('div', {'align': 'center'}, recursive=False)
 text_to_be_filtered = []
 all_texts = []
 for i in range(len(rows)):
@@ -766,7 +768,8 @@ for i in range(len(rows)):
     # print "Post number ", i+1, ":"
     text_to_be_filtered_row = []
     for text in text_row:
-        if len(text) <= 20 and text.parent.name not in text_parent_ignore_list:
+        text_unicode = text.strip()
+        if len(text_unicode) <= 20 and text.parent.name not in text_parent_ignore_list:
             text_to_be_filtered_row.append(text)
     text_to_be_filtered.append(text_to_be_filtered_row)
 
