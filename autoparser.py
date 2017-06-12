@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup as bs
+from collections import Counter
 
 import itertools
 import time
@@ -613,3 +614,155 @@ if row_selector:
     print "Row css selector regex: " + str(get_tag(elem[0])) + '.' +str(row_selector)
 else:
     print "Row tag:" + str(get_tag(elem[0]))
+
+
+def remove_nulls_strings(contents):
+    contents_new = []
+    for content in contents:
+        content_str = content.encode('utf-8')
+        if content_str.strip():
+            contents_new.append(content)
+    return contents_new
+
+def has_atleast_one_alphabet(text):
+    if re.search('[a-zA-Z]', text):
+        return True
+    return False
+
+def filter_based_on_count(text_to_be_filtered):
+    text_map = Counter(i for i in list(itertools.chain.from_iterable(text_to_be_filtered)))
+    remove_these = set()
+    for key in text_map:
+        if text_map[key] > len(text_to_be_filtered)/2:
+            remove_these.add(key)
+    text_to_be_filtered_new = []
+    for text_to_be_filtered_row in text_to_be_filtered:
+        text_to_be_filtered_row_new = []
+        for text in text_to_be_filtered_row:
+            if text not in remove_these and has_atleast_one_alphabet(text):
+                text_to_be_filtered_row_new.append(text)
+        text_to_be_filtered_new.append(text_to_be_filtered_row_new)
+    return text_to_be_filtered_new
+
+def find_non_unique_attrs(attrs):
+    unique_attr_keys = ['id', 'href']
+    attrs_new = {}
+    for key in attrs:
+        if key not in unique_attr_keys:
+            attrs_new[key] = attrs[key]
+    return attrs_new
+
+def find_3_parents(elem, row):
+    parents_and_attrs = []
+    parent_elem = elem
+    for i in range(3):
+        parent_elem = parent_elem.parent
+        if parent_elem == row:
+            break
+        attrs = find_non_unique_attrs(parent_elem.attrs)
+        parents_and_attrs = [(parent_elem.name, attrs)] + parents_and_attrs
+    cur_elem = row
+    prev_elem = row
+    for parent, attrs in parents_and_attrs:
+        if cur_elem:
+            cur_elem = cur_elem.find(parent, attrs)
+            if cur_elem:
+                prev_elem = cur_elem
+        else:
+            cur_elem = prev_elem
+            cur_elem = cur_elem.find(parent, attrs)
+            if cur_elem:
+                prev_elem = cur_elem
+    if cur_elem.text == elem:
+        return parents_and_attrs, False, False
+    else:
+        contents = cur_elem.contents
+        for i in range(len(contents)):
+            content = contents[i]
+            if content == cur_elem:
+                return parents_and_attrs, True, i
+    return parents_and_attrs, False, False
+
+def verify_parents_and_attrs(parents_and_attrs, row):
+    parents_and_attrs_only, flag, cont_index = parents_and_attrs
+    cur_elem = row
+    prev_elem = row
+    for parent, attrs in parents_and_attrs_only:
+        if cur_elem:
+            cur_elem = cur_elem.find(parent, attrs)
+            if cur_elem:
+                prev_elem = cur_elem
+        else:
+            cur_elem = prev_elem
+            cur_elem = cur_elem.find(parent, attrs)
+            if cur_elem:
+                prev_elem = cur_elem
+    if flag:
+        cur_elem = cur_elem.contents[cont_index]
+    else:
+        cur_elem = cur_elem.text
+    return cur_elem
+
+def find_common_attrs(parents_and_attrs_posts):
+    parents_and_attrs_only = []
+    [parents_and_attrs_post_1, parents_and_attrs_post_2] = parents_and_attrs_posts
+    parents_and_attrs_only_1, flag_1, cont_ind_1 = parents_and_attrs_post_1
+    parents_and_attrs_only_2, flag_2, cont_ind_2 = parents_and_attrs_post_2
+    if len(parents_and_attrs_only_1) == len(parents_and_attrs_only_2):
+        for i in range(len(parents_and_attrs_only_1)):
+            parent_1, attrs_1 = parents_and_attrs_only_1[i]
+            parent_2, attrs_2 = parents_and_attrs_only_2[i]
+            attrs = {}
+            for attr in attrs_1:
+                if attr in attrs_2 and attrs_2[attr] == attrs_1[attr]:
+                    attrs[attr] = attrs_1[attr]
+            parents_and_attrs_only.append((parent_1, attrs))
+    return parents_and_attrs_only, flag_1, cont_ind_1
+
+def verify_parents_and_attrs_for_all_posts(parents_and_attrs, rows, text_filtered):
+    for i, row in enumerate(rows):
+        try:
+            text_of_elem = verify_parents_and_attrs(parents_and_attrs, row)
+            if text_of_elem not in text_filtered[i]:
+                return False, i
+        except:
+            return False, i
+    return True, -1
+
+text_parent_ignore_list = ['p', 'li']
+
+posts = soup.find('div', {'id': 'brdmain'})
+rows = posts.find_all('div', {'id': re.compile('p[0-9]+')})
+text_to_be_filtered = []
+for i in range(len(rows)):
+    row = rows[i]
+    texts = remove_nulls_strings(row.find_all(text=re.compile('')))
+    # print "Post number ", i+1, ":"
+    text_to_be_filtered_row = []
+    for text in texts:
+        if len(text) <= 20 and text.parent.name not in text_parent_ignore_list:
+            text_to_be_filtered_row.append(text)
+    text_to_be_filtered.append(text_to_be_filtered_row)
+
+text_filtered = filter_based_on_count(text_to_be_filtered)
+parents_and_attrs_posts = []
+for i in range(2):
+    print "Post number ", i+1, ":"
+    post = text_filtered[i]
+    row = rows[i]
+    for i, text in enumerate(post):
+        print str(i) + ':' + text
+    print '\n'
+    print "Enter index for user_name:"
+    index = int(raw_input())
+    parents_and_attrs = find_3_parents(post[index], row)
+    parents_and_attrs_posts.append(parents_and_attrs)
+
+parents_and_common_attrs = find_common_attrs(parents_and_attrs_posts)
+if verify_parents_and_attrs_for_all_posts(parents_and_common_attrs, rows, text_filtered):
+    print "Soup for user:", parents_and_common_attrs
+    print "\nUsers found in given page:"
+    for row in rows:
+        print verify_parents_and_attrs(parents_and_common_attrs, row)
+else:
+    print "Failed to fetch soup for user"
