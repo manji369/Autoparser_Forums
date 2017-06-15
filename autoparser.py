@@ -16,11 +16,13 @@ home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
 # url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
 # url = "https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera"
 # url = "file:///" + home_path + "1401.htm"
-# url = "file:///" + home_path + "alfursan.htm"
-url = "file:///" + home_path + "aoreteam.htm"
+url = "file:///" + home_path + "alfursan.htm"
+# url = "file:///" + home_path + "aoreteam.htm"
 # url = "file:///" + home_path + "audonjon.htm"
 """ url = "file:///" + home_path + "abtalealdjazaire.htm" """
 min_posts = 5
+text_parent_ignore_list = ['p', 'li', 'strong']
+text_parent_ignore_list_while_fetch_parent = ['p', 'li', 'strong', 'b']
 
 def is_not_first_tag(xpath):
     """
@@ -655,12 +657,16 @@ def find_non_unique_attrs(attrs):
 def find_3_parents(elem, row):
     parents_and_attrs = []
     parent_elem = elem
-    for i in range(3):
+    i = 0
+    while i < 3:
         parent_elem = parent_elem.parent
         if parent_elem == row:
             break
-        attrs = find_non_unique_attrs(parent_elem.attrs)
-        parents_and_attrs = [(parent_elem.name, attrs)] + parents_and_attrs
+        if parent_elem.name not in text_parent_ignore_list_while_fetch_parent:
+            # attrs = find_non_unique_attrs(parent_elem.attrs)
+            attrs = parent_elem.attrs
+            parents_and_attrs = [(parent_elem.name, attrs)] + parents_and_attrs
+            i += 1
     cur_elem = row
     prev_elem = row
     for parent, attrs in parents_and_attrs:
@@ -683,6 +689,7 @@ def find_3_parents(elem, row):
                 return parents_and_attrs, True, i
     return parents_and_attrs, False, False
 
+
 def verify_parents_and_attrs(parents_and_attrs, row):
     parents_and_attrs_only, flag, cont_index = parents_and_attrs
     cur_elem = row
@@ -703,21 +710,76 @@ def verify_parents_and_attrs(parents_and_attrs, row):
         cur_elem = cur_elem.text
     return cur_elem
 
+def check_common_attrs_tag(parent_1, attrs_1, parent_2, attrs_2):
+    if parent_1 != parent_2:
+        return False
+    else:
+        if attrs_1 == attrs_2:
+            return attrs_1
+        else:
+            if 'id' in attrs_1 and 'id' in attrs_2:
+                id_1 = attrs_1.pop('id')
+                id_2 = attrs_2.pop('id')
+                if attrs_1 == attrs_2:
+                    id_1 = re.sub('[0-9]+', '[0-9]+', id_1)
+                    id_2 = re.sub('[0-9]+', '[0-9]+', id_2)
+                    if id_1 == id_2:
+                        attrs_1['id'] = id_1
+                        return attrs_1
+    return False
+
 def find_common_attrs(parents_and_attrs_posts):
     parents_and_attrs_only = []
     [parents_and_attrs_post_1, parents_and_attrs_post_2] = parents_and_attrs_posts
     parents_and_attrs_only_1, flag_1, cont_ind_1 = parents_and_attrs_post_1
     parents_and_attrs_only_2, flag_2, cont_ind_2 = parents_and_attrs_post_2
     if len(parents_and_attrs_only_1) == len(parents_and_attrs_only_2):
-        for i in range(len(parents_and_attrs_only_1)):
-            parent_1, attrs_1 = parents_and_attrs_only_1[i]
-            parent_2, attrs_2 = parents_and_attrs_only_2[i]
-            attrs = {}
-            for attr in attrs_1:
-                if attr in attrs_2 and attrs_2[attr] == attrs_1[attr]:
-                    attrs[attr] = attrs_1[attr]
-            parents_and_attrs_only.append((parent_1, attrs))
+        i = 0
+        j_start = 0
+        while i < len(parents_and_attrs_only_1):
+            j = j_start
+            while j < len(parents_and_attrs_only_2):
+                parent_1, attrs_1 = parents_and_attrs_only_1[i]
+                parent_2, attrs_2 = parents_and_attrs_only_2[j]
+                regex_id = check_common_attrs_tag(parent_1, attrs_1, parent_2, attrs_2)
+                if regex_id:
+                    parents_and_attrs_only.append((parent_1, attrs_1))
+                    j_start = j
+                j += 1
+            i += 1
     return parents_and_attrs_only, flag_1, cont_ind_1
+
+# parents_and_attrs_only = []
+# [parents_and_attrs_post_1, parents_and_attrs_post_2] = parents_and_attrs_posts
+# parents_and_attrs_only_1, flag_1, cont_ind_1 = parents_and_attrs_post_1
+# parents_and_attrs_only_2, flag_2, cont_ind_2 = parents_and_attrs_post_2
+# if len(parents_and_attrs_only_1) == len(parents_and_attrs_only_2):
+#     i = 0
+#     j_start = 0
+#     while i < len(parents_and_attrs_only_1):
+#         j = j_start
+#         while j < len(parents_and_attrs_only_2):
+#             parent_1, attrs_1 = parents_and_attrs_only_1[i]
+#             parent_2, attrs_2 = parents_and_attrs_only_2[j]
+#             regex_id = check_common_attrs_tag(parent_1, attrs_1, parent_2, attrs_2)
+#             if regex_id:
+#                 parents_and_attrs_only.append((parent_1, attrs_1))
+#                 j_start = j
+#             i += 1
+#             j += 1
+# return parents_and_attrs_only, flag_1, cont_ind_1
+#
+# while i < len(parents_and_attrs_only_1):
+#     j = j_start
+#     while j < len(parents_and_attrs_only_2):
+#         parent_1, attrs_1 = parents_and_attrs_only_1[i]
+#         parent_2, attrs_2 = parents_and_attrs_only_2[j]
+#         regex_id = check_common_attrs_tag(parent_1, attrs_1, parent_2, attrs_2)
+#         if regex_id:
+#             parents_and_attrs_only.append((parent_1, attrs_1))
+#             j_start = j
+#         i += 1
+#         j += 1
 
 def verify_parents_and_attrs_for_all_posts(parents_and_attrs, rows, text_filtered):
     for i, row in enumerate(rows):
@@ -753,8 +815,6 @@ def find_regex_attrs(parent):
     return  tag_name, attrs
 
 
-text_parent_ignore_list = ['p', 'li', 'strong']
-
 # posts = soup.find('div', {'id': 'brdmain'})
 # rows = posts.find_all('div', {'id': re.compile('p[0-9]+')})
 posts = soup.find('div', {'id': 'posts'})
@@ -773,6 +833,7 @@ for i in range(len(rows)):
             text_to_be_filtered_row.append(text)
     text_to_be_filtered.append(text_to_be_filtered_row)
 
+
 text_filtered = filter_based_on_count(text_to_be_filtered)
 parents_and_attrs_posts = []
 for i in range(2):
@@ -788,7 +849,7 @@ for i in range(2):
     parents_and_attrs_posts.append(parents_and_attrs)
 
 parents_and_common_attrs = find_common_attrs(parents_and_attrs_posts)
-if verify_parents_and_attrs_for_all_posts(parents_and_common_attrs, rows, text_filtered):
+if verify_parents_and_attrs_for_all_posts(parents_and_common_attrs, rows, text_filtered)[0]:
     print "Soup for user:", parents_and_common_attrs
     print "\nUsers found in given page:"
     for row in rows:
