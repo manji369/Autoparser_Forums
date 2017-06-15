@@ -15,8 +15,8 @@ home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_
 # url = "file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html"
 # url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
 # url = "https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera"
-# url = "file:///" + home_path + "1401.htm"
-url = "file:///" + home_path + "alfursan.htm"
+url = "file:///" + home_path + "1401.htm"
+# url = "file:///" + home_path + "alfursan.htm"
 # url = "file:///" + home_path + "aoreteam.htm"
 # url = "file:///" + home_path + "audonjon.htm"
 """ url = "file:///" + home_path + "abtalealdjazaire.htm" """
@@ -827,8 +827,10 @@ def find_regex_attrs(parent):
 
 # posts = soup.find('div', {'id': 'brdmain'})
 # rows = posts.find_all('div', {'id': re.compile('p[0-9]+')})
-posts = soup.find('div', {'id': 'posts'})
-rows = posts.find_all('div', {'align': 'center'}, recursive=False)
+# posts = soup.find('div', {'id': 'posts'})
+# rows = posts.find_all('div', {'align': 'center'}, recursive=False)
+posts = soup.find('div', {'id': 'postlist'})
+rows = posts.find_all('div', {'id': re.compile('post_[0-9]+')}, recursive=False)
 text_to_be_filtered = []
 all_texts = []
 for i in range(len(rows)):
