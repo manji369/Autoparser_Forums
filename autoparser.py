@@ -9,8 +9,8 @@ import re
 import sys
 
 
-# home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
-home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
+home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
+# home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
 # url = "https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424"
 # url = "file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html"
 # url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
@@ -22,7 +22,7 @@ url = "file:///" + home_path + "alfursan.htm"
 """ url = "file:///" + home_path + "abtalealdjazaire.htm" """
 min_posts = 5
 text_parent_ignore_list = ['p', 'li', 'strong']
-text_parent_ignore_list_while_fetch_parent = ['p', 'li', 'strong', 'b']
+text_parent_ignore_list_while_fetch_parent = ['p', 'li', 'strong']
 
 def is_not_first_tag(xpath):
     """
@@ -631,17 +631,27 @@ def has_atleast_one_alphabet(text):
         return True
     return False
 
+def is_in_more_than_half(key, text_maps):
+    len_maps = len(text_maps)
+    key_cnt = 0
+    for text_map in text_maps:
+        if key in text_map:
+            key_cnt += 1
+    return key_cnt > len_maps/2
+
 def filter_based_on_count(text_to_be_filtered):
-    text_map = Counter(i for i in list(itertools.chain.from_iterable(text_to_be_filtered)))
+    text_maps = [Counter(text) for text in text_to_be_filtered]
+    text_map_overall = Counter(i for i in list(itertools.chain.from_iterable(text_to_be_filtered)))
     remove_these = set()
-    for key in text_map:
-        if text_map[key] > len(text_to_be_filtered)/2:
+    for key in text_map_overall:
+        if is_in_more_than_half(key, text_maps):
             remove_these.add(key)
     text_to_be_filtered_new = []
     for text_to_be_filtered_row in text_to_be_filtered:
         text_to_be_filtered_row_new = []
         for text in text_to_be_filtered_row:
-            if text not in remove_these and has_atleast_one_alphabet(text):
+            # if text not in remove_these and has_atleast_one_alphabet(text):
+            if text not in remove_these:
                 text_to_be_filtered_row_new.append(text)
         text_to_be_filtered_new.append(text_to_be_filtered_row_new)
     return text_to_be_filtered_new
@@ -785,7 +795,7 @@ def verify_parents_and_attrs_for_all_posts(parents_and_attrs, rows, text_filtere
     for i, row in enumerate(rows):
         try:
             text_of_elem = verify_parents_and_attrs(parents_and_attrs, row)
-            if text_of_elem not in text_filtered[i] or not text_to_be_filtered[i]:
+            if text_of_elem.strip() not in text_to_be_filtered[i]:
                 return False, i
         except:
             return False, i
