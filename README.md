@@ -1,6 +1,6 @@
 # Semi-Autoparser for Forums
 
-##Finding the html elements that enclose the entire post (including memeber panel).
+## Finding the html elements that enclose the entire post (including memeber panel).
 
 Forums have a specific structure for the description pages, the width of all the
 posts being the same. Which means we can find all such html elements with the
@@ -43,8 +43,8 @@ eg. main_selector_soup, row_selector_soup = find_posts(soup, driver, home_path)
 If this doesn't work, we can probably grab these manually and continue with other
 parts of autoparser.
 
-##Finding the required fields from the grabbed posts.
+## Finding the required fields from the grabbed posts.
 
-#User name
+# User name
 
 **Algorithm/Overview of method**
