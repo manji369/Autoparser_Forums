@@ -45,6 +45,6 @@ parts of autoparser.
 
 ## Finding the required fields from the grabbed posts.
 
-# User name
+### User name
 
 **Algorithm/Overview of method**
