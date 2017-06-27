@@ -326,6 +326,8 @@ def level_with_max_number_of_elems_with_same_parent(same_width_elements, sizes):
                 most_common_parent = find_most_common_parent(same_width_elements_new)
                 same_width_elements_new = filter_by_parent(same_width_elements_new, most_common_parent)
                 most_common_parent_size = get_common_parent_size(sizes, most_common_parent)
+                if not most_common_parent_size:
+                    most_common_parent_size = (most_common_parent, -1, -1, -1, -1)
                 same_width_elements_new.sort(key = lambda x: x[4])
                 return most_common_parent_size, same_width_elements_new
             else:
