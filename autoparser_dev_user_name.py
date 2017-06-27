@@ -17,8 +17,8 @@ home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_
 # url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
 # url = "https://stackoverflow.com/questions/14816166/rotate-camera-preview-to-portrait-android-opencv-camera"
 # url = "file:///" + home_path + "1401.htm"
-url = "file:///" + home_path + "alfursan.htm"
-# url = "file:///" + home_path + "aoreteam.htm"
+# url = "file:///" + home_path + "alfursan.htm"
+url = "file:///" + home_path + "aoreteam.htm"
 # url = "file:///" + home_path + "audonjon.htm"
 """ url = "file:///" + home_path + "abtalealdjazaire.htm" """
 min_posts = 5
@@ -867,11 +867,18 @@ def find_regex_attrs(parent):
         attrs[key] = val
     return  tag_name, attrs
 
-
+# Abtalealdjazaire
+# posts = soup.find('table', {'class': 'forumline'})
+# rows = posts.find_all('tr', {'id': re.compile('p[0-9]+')})
+# Audonjon
 # posts = soup.find('div', {'id': 'brdmain'})
 # rows = posts.find_all('div', {'id': re.compile('p[0-9]+')})
+#Alfursan
+#Alkarsan
+#Aoreteam
 posts = soup.find('div', {'id': 'posts'})
 rows = posts.find_all('div', {'align': 'center'}, recursive=False)
+#1401
 # posts = soup.find('div', {'id': 'postlist'})
 # rows = posts.find_all('div', {'id': re.compile('post_[0-9]+')}, recursive=False)
 text_to_be_filtered = []
@@ -891,15 +898,22 @@ for i in range(len(rows)):
 
 text_filtered = filter_based_on_count(text_to_be_filtered)
 parents_and_attrs_posts = []
-for i in range(2):
+cnt = 0
+i = 0
+while i < len(text_to_be_filtered) and cnt < 2:
     print "Post number ", i+1, ":"
     post = text_filtered[i]
     row = rows[i]
-    for i, text in enumerate(post):
-        print str(i) + ':' + text
+    for j, text in enumerate(post):
+        print str(j) + ':' + text
     print '\n'
     print "Enter index for user_name:"
+    print "Enter -1 if you want to skip this post"
     index = int(raw_input())
+    i += 1
+    if index == -1:
+        continue
+    cnt += 1
     parents_and_attrs = find_3_parents(post[index], row)
     parents_and_attrs_posts.append(parents_and_attrs)
 
@@ -908,7 +922,7 @@ if verify_parents_and_attrs_for_all_posts(parents_and_common_attrs, rows, text_f
     print "Soup for user:", parents_and_common_attrs
     print "\nUsers found in given page:"
     for row in rows:
-        print verify_parents_and_attrs(parents_and_common_attrs, row)
+        print verify_parents_and_attrs(parents_and_common_attrs, row).strip()
 else:
     print "Failed to fetch soup for user"
 
