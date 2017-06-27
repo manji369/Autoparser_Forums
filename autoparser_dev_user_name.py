@@ -10,8 +10,8 @@ import re
 import sys
 
 
-# home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
-home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
+home_path = '/home/manji369/Downloads/Python_Scripts/seleniumScripts/Autoparser_Forums/Autoparser_pages/'
+# home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
 # url = "https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=94424"
 # url = "file:///home/manji369/Downloads/Python_Scripts/seleniumScripts/test_page.html"
 # url = "https://stackoverflow.com/questions/40471/differences-between-hashmap-and-hashtable"
@@ -21,7 +21,7 @@ home_path = '/home/revanth/Autoparser_Forums/Autoparser_pages/'
 # url = "file:///" + home_path + "aoreteam.htm"
 # url = "file:///" + home_path + "audonjon.htm"
 url = "file:///" + home_path + "ashiyane.htm"
-url = "file:///" + home_path + "bitshack.htm"
+# url = "file:///" + home_path + "bitshack.htm"
 
 """ url = "file:///" + home_path + "abtalealdjazaire.htm" """
 min_posts = 5
@@ -218,11 +218,11 @@ def level_with_max_count(same_width_elements):
     level_map = create_level_map(same_width_elements)
     return sorted(level_map, key=level_map.get, reverse=True)[0]
 
-def find_most_common_parent(same_width_elements):
+def find_most_common_parent(same_width_elements, level_parent):
     """
     Given a group of same width elements, returns the parent that is most common.
     """
-    parents = ['/'.join(x[0].split('/')[:-1]) for x in same_width_elements]
+    parents = [get_xpath_parent(x, level_parent) for x in same_width_elements]
     parent_map = {}
     for parent in parents:
         if parent not in parent_map:
@@ -249,7 +249,12 @@ def get_tag(elem):
     """
     return get_tag_with_number(elem).split('[')[0]
 
-def find_elems_with_most_common_tag_name_or_parent(same_width_elements, name_or_parent=True):
+def get_xpath_parent(elem, level_parent=1):
+    xpath_parent = '/'.join(elem[0].split('/')[:-level_parent])
+    return xpath_parent
+
+
+def find_elems_with_most_common_tag_name_or_parent(same_width_elements, name_or_parent=True, level_parent=1):
     """
     Two modes:
     if name_or_parent is True:
@@ -264,7 +269,7 @@ def find_elems_with_most_common_tag_name_or_parent(same_width_elements, name_or_
         if name_or_parent:
             tag = get_tag(elem[0])
         else:
-            xpath_parent = '/'.join(elem[0].split('/')[:-1])
+            xpath_parent = get_xpath_parent(elem, level_parent)
             tag = get_tag_with_number(xpath_parent)
         if tag not in tag_map:
             tag_map[tag] = 1
@@ -276,7 +281,7 @@ def find_elems_with_most_common_tag_name_or_parent(same_width_elements, name_or_
         if name_or_parent:
             tag = get_tag(elem[0])
         else:
-            xpath_parent = '/'.join(elem[0].split('/')[:-1])
+            xpath_parent = get_xpath_parent(elem, level_parent)
             tag = get_tag_with_number(xpath_parent)
         if tag == common_tag:
             same_width_elements_new.append(elem)
@@ -301,15 +306,24 @@ def filter_by_parent(same_width_elements, parent):
             same_width_elements_new.append(elem)
     return same_width_elements_new
 
-def find_elems_with_most_common_immediate_parent(same_width_elements):
+def find_elems_with_most_common_immediate_parent(same_width_elements, sizes, level_parent=1):
     """
     Master function for find_elems_with_most_common_tag_name_or_parent. Also Checks
     if number of posts detected are less than minimum number of posts.
     """
     same_width_elements = find_elems_with_most_common_tag_name_or_parent(same_width_elements, False)
     if len(same_width_elements) < min_posts:
-        return same_width_elements, False
-    return same_width_elements, True
+        return same_width_elements, False, level_parent
+    if level_parent > 3:
+        return same_width_elements, False, level_parent
+    xpath_parent = get_xpath_parent(same_width_elements[0], level_parent)
+    size_parent = False
+    for size in sizes:
+        if size[0] == xpath_parent:
+            size_parent = size
+    if size_parent:
+        return same_width_elements, True, level_parent
+    return find_elems_with_most_common_immediate_parent(same_width_elements, sizes, level_parent+1)
 
 
 def level_with_max_number_of_elems_with_same_parent(same_width_elements, sizes):
@@ -333,9 +347,9 @@ def level_with_max_number_of_elems_with_same_parent(same_width_elements, sizes):
             same_width_elements_new = find_elems_with_most_common_tag_name_or_parent(same_width_elements_new)
             if len(same_width_elements_new) < min_posts:
                 continue
-            same_width_elements_new, success = find_elems_with_most_common_immediate_parent(same_width_elements_new)
+            same_width_elements_new, success, level_parent = find_elems_with_most_common_immediate_parent(same_width_elements_new, sizes)
             if success:
-                most_common_parent = find_most_common_parent(same_width_elements_new)
+                most_common_parent = find_most_common_parent(same_width_elements_new, level_parent)
                 same_width_elements_new = filter_by_parent(same_width_elements_new, most_common_parent)
                 most_common_parent_size = get_common_parent_size(sizes, most_common_parent)
                 same_width_elements_new.sort(key = lambda x: x[4])
